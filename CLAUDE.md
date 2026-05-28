@@ -1,111 +1,121 @@
-# 项目地图强制规则
-找文件,找测试,找配置,排查功能,修改功能前，必须先用项目地图定位。禁止跳过地图直接搜源码,测试,配置或具体业务文件。
+# Project Map — Mandatory Rules
 
-## 不用搜地图的情况
-- 文件就在当前工作目录第一层，并且用户已经明确点名这个文件，可以直接打开或修改。
-  - 例子:`AGENTS.md`、`map.py`。
-  - 这个例外只适用于当前工作目录第一层文件；不适用于任何子目录里的文件。
-- 用户直接提供了包含路径分隔符（`/`）的文件路径，可直接打开，无需搜地图。
-  - 例子:`src/components/Foo.jsx`、`backend/service/UserService.java`
-- 当前对话上下文中已有 `ide_opened_file` 标签指向该文件，路径已知，可直接打开。
-- 本次会话已读过该文件（路径在上下文中），可直接操作，无需重新定位。
-- 用户描述的文件名在项目中唯一（如组件名、类名），允许跳过第一跳，直接搜对应格式桶的 `code-index.json`。
+Before locating any file, test, config, or business logic — and before modifying anything — you MUST query the project map first. Jumping directly to source, test, config, or business files without going through the map is prohibited.
 
-## 必须搜地图的情况
-- 需要进入任意文件夹查找。
-- 需要搜索源码目录、测试目录、配置目录或具体业务文件。
-- 用户只描述功能现象，未明确给出当前工作目录第一层文件名。
-- 不确定目标文件在哪里。
+## When you may skip the map
 
-会话开始时，先静默更新项目地图:
+- The file is in the **top level of the current working directory** and the user has named it explicitly. You may open or edit it directly.
+  - Examples: `AGENTS.md`, `map.py`
+  - This exception applies only to top-level files; it does not apply to files in any subdirectory.
+- The user has provided a path that **contains a path separator (`/`)**. Open it directly.
+  - Examples: `src/components/Foo.jsx`, `backend/service/UserService.java`
+- The current conversation context already contains an `ide_opened_file` tag pointing to the file. Path is known; open directly.
+- The file has already been read in this session (path is in context). Proceed directly without re-locating.
+- The filename the user described is **unique in the project** (e.g. a component name or class name). You may skip hop 1 and search the matching format bucket's `code-index.json` directly.
+
+## When you must use the map
+
+- Navigating into any subdirectory.
+- Searching source, test, config, or business file directories.
+- The user describes a symptom or feature but does not name a top-level file.
+- You are unsure where the target file lives.
+
+At session start, silently refresh the project map:
 `rtk python3 map.py >/dev/null 2>&1 && echo "map.py done" || echo "map.py failed"`
 
-要求:
-- 只输出 `map.py done` 或 `map.py failed`
-- 不把地图内容或脚本详细输出放进对话上下文
-- 更新失败不阻断会话，后续仍按地图流程先查
+Requirements:
+- Output only `map.py done` or `map.py failed`
+- Do not put map content or script output into the conversation context
+- A refresh failure does not block the session; continue using the map flow
 
-## 强制查询顺序
-### 1. 第一跳:只能搜小地图
-首次定位命令的搜索目标只能是:
+## Mandatory query order
+
+### Hop 1 — small map only
+
+The first lookup command must search only:
 `.project-index/project-map.json`
 
-格式:
-`rtk rg "关键词1|关键词2|关键词3|...|关键词X" .project-index/project-map.json`
+Format:
+`rtk rg "keyword1|keyword2|keyword3|...|keywordN" .project-index/project-map.json`
 
-禁止第一跳搜索:
-- 任意源码目录
-- 任意测试目录
-- 任意配置文件
-- 任意具体业务文件
-- `.project-index/<格式>/code-index.json`
-- 多个目标混搜
+Hop 1 must NOT search:
+- Any source directory
+- Any test directory
+- Any config file
+- Any business file
+- `.project-index/<format>/code-index.json`
+- Multiple targets in a single command
 
-### 2. 第二跳:只能搜详细索引
-只有小地图命中后，才允许搜详细索引。
-根 `.project-index/project-map.json` 里的 `buckets` 会指向各格式桶；第二跳必须按命中文件格式选择对应桶里的 `code-index.json`。
+### Hop 2 — bucket index only
 
-格式:
-`rtk rg "候选路径|类名|函数名|关键词" .project-index/<格式>/code-index.json`
+Only after a small-map hit may you search the detailed index.
+The `buckets` field in `.project-index/project-map.json` points to each format bucket. Hop 2 must select the `code-index.json` in the bucket that matches the file format of the hit.
 
-常用格式桶示例:
-- `.jsx` 文件:`.project-index/jsx/code-index.json`
-- `.js` 文件:`.project-index/js/code-index.json`
-- `.java` 文件:`.project-index/java/code-index.json`
-- `.xml` 文件:`.project-index/xml/code-index.json`
-- `.yaml/.yml` 文件:`.project-index/yaml/code-index.json`
-- `.properties` 文件:`.project-index/properties/code-index.json`
-- `.sql` 文件:`.project-index/sql/code-index.json`
-- `.css` 文件:`.project-index/css/code-index.json`
+Format:
+`rtk rg "candidate-path|ClassName|functionName|keyword" .project-index/<format>/code-index.json`
 
-跨格式问题允许第二跳查多个格式桶，但每条命令的搜索目标仍只能是一个桶的 `code-index.json`。
+Common bucket examples:
+- `.jsx` files: `.project-index/jsx/code-index.json`
+- `.js` files: `.project-index/js/code-index.json`
+- `.java` files: `.project-index/java/code-index.json`
+- `.xml` files: `.project-index/xml/code-index.json`
+- `.yaml/.yml` files: `.project-index/yaml/code-index.json`
+- `.properties` files: `.project-index/properties/code-index.json`
+- `.sql` files: `.project-index/sql/code-index.json`
+- `.css` files: `.project-index/css/code-index.json`
 
-例子:
-`rtk rg "Settings|updateSettings|保存" .project-index/jsx/code-index.json`
+Cross-format issues may query multiple buckets in hop 2, but each command must target exactly one bucket's `code-index.json`.
+
+Examples:
+`rtk rg "Settings|updateSettings|save" .project-index/jsx/code-index.json`
 `rtk rg "Settings|updateSettings" .project-index/java/code-index.json`
 `rtk rg "UserSettingsMapper|update" .project-index/xml/code-index.json`
 
-### 3. 第三跳:只打开候选文件
-根据小地图和详细索引命中结果，挑最相关的候选文件（最多不超过 10 个），只读这些文件。
-格式:
-`rtk sed -n '1,220p' 候选文件`
+### Hop 3 — candidate files only
 
-## 直接搜源码的例外
-只有以下情况允许直接搜源码,测试,配置或业务文件:
-- 小地图无命中
-- 重新运行 `map.py` 后仍无命中
-- 已通过地图确定候选目录，且搜索范围缩到候选文件或候选小目录
-- 用户明确要求做地图流程与直接源码搜索的 A/B token 对比
-- 搜索目标是「值/内容」而非「名字」:代码索引只收录命名符号（函数名、组件名、类名、变量名），不收录具体值。凡搜索目标是 CSS class、字面字符串、数字常量、注释文字等「内容」时，地图必然无命中，直接搜源码。
+Based on small-map and bucket-index hits, pick the most relevant candidates (max 10) and read only those files.
+Format:
+`rtk sed -n '1,220p' candidate-file`
 
-## 地图定位失败处理
-如果地图定位失败:
-1. 先重新生成地图:
+## Exceptions — direct source search allowed
+
+Direct source, test, config, or business file search is allowed only when:
+- Small map returns no hits
+- Still no hits after re-running `map.py`
+- The map has already narrowed the scope to a candidate file or small candidate directory
+- The user explicitly requests an A/B token comparison between the map flow and direct source search
+- The search target is a **value/content** rather than a **name**: the code index only records named symbols (function names, component names, class names, variable names) — not literal values. When searching for a CSS class, string literal, numeric constant, comment text, or any other content, the map will produce no hits; go directly to source.
+
+## Map failure recovery
+
+If map-based location fails:
+1. Re-generate the map first:
    `rtk python3 map.py >/tmp/pick_word_map.log 2>&1 && echo "map.py done" || echo "map.py failed"`
-2. 再按强制查询顺序查一次
-3. 如果仍然找不到，再正常使用 `rg`,`find`,打开文件定位
+2. Repeat the mandatory query order once
+3. If still not found, fall back to `rg`, `find`, or direct file lookup
 
-## 地图收益质疑处理
-正常任务只走地图流程，不为了证明收益而额外跑“不用地图”的对照搜索。
+## Challenging the token savings
 
-当用户质疑地图是否省 token,要求证明,要求测试对比时，允许按同一真实任务跑一次 A/B 对照:
-1. A 组:按地图流程执行，记录每条工具输出里的 `Original token count`
-2. B 组:不用地图，直接在相关源码目录执行一次等价关键词搜索，记录工具输出里的 `Original token count`
-3. 对比公式:`节省率 = (B 组 token - A 组 token) / B 组 token`
+Normal tasks use only the map flow; do not run a "without map" control search just to prove the savings.
 
-汇报时必须说明:B 组对照搜索本身会浪费 token，这次执行只为回应质疑和做对比；平时正常排查不要跑 B 组。
+When the user challenges whether the map actually saves tokens and requests proof, run one A/B comparison on the same real task:
+1. **Group A**: execute the map flow, record the `Original token count` from each tool output
+2. **Group B**: skip the map, run an equivalent keyword search directly in the relevant source directory, record the `Original token count`
+3. Formula: `savings rate = (Group B tokens − Group A tokens) / Group B tokens`
 
-汇报用语必须区分:
-- `直接搜源码对照值`:实际跑 B 组得到的数
-- `地图定位实际值`:实际跑 A 组得到的数
-- 禁止把对照值说成固定收益或全局收益，只能说“本次对比”
+When reporting, you must note: the Group B control search itself wastes tokens; it is run only to respond to the challenge. Do not run Group B during normal operation.
 
-## 绝对禁止
-- 直接 `cat .project-index/project-map.json`
-- 直接 `cat .project-index/*/code-index.json`
-- 第一跳直接搜源码,测试,配置或业务文件
-- 第一跳把多个搜索目标混在一起
-- 第二跳把详细索引和源码目录混在一起
-- 第二跳搜索 `.project-index/*/code-index.json`
-- 第二跳把多个格式桶混在一条命令里
+Reporting language must distinguish:
+- `Direct source search baseline`: the actual number obtained from Group B
+- `Map-based actual`: the actual number obtained from Group A
+- Never describe the baseline as a fixed or global savings figure; refer to it only as "this comparison"
 
+## Absolute prohibitions
+
+- `cat .project-index/project-map.json` directly
+- `cat .project-index/*/code-index.json` directly
+- Hop 1 searching source, test, config, or business files directly
+- Hop 1 mixing multiple search targets in one command
+- Hop 2 mixing the detailed index and source directories
+- Hop 2 using `.project-index/*/code-index.json` glob
+- Hop 2 mixing multiple format buckets in one command
