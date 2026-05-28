@@ -105,6 +105,20 @@ Buckets exist so that a frontend query only loads the `jsx/js/ts` bucket and a b
 
 **Config / support files**: `.css` `.html` `.json` `.xml` `.yaml` `.yml` `.properties` `.sql` `.md`
 
+### Skeptical about the token savings?
+
+Good. You're encouraged to challenge it.
+
+Just tell the AI something like: *"Prove that the map saves tokens — run a comparison."*
+
+The AI will then run the same lookup twice on a real task:
+
+- **With map**: three-hop query through the index, records token count
+- **Without map**: direct keyword search in the source directory, records token count
+- **Result**: savings rate = `(without − with) / without`
+
+The comparison is run on a real task in the current session, so the numbers reflect your actual project. Note that running the "without map" control search itself wastes tokens — it exists only to answer your challenge, not as part of normal operation.
+
 ---
 
 ## 中文
@@ -197,3 +211,17 @@ python3 install.py /path/to/your-project
 **代码文件**：`.ts` `.tsx` `.js` `.jsx` `.mjs` `.cjs` `.py` `.java` `.vue` `.svelte`
 
 **配置/支撑文件**：`.css` `.html` `.json` `.xml` `.yaml` `.yml` `.properties` `.sql` `.md`
+
+### 对 token 节省效果有疑问？
+
+欢迎质疑，直接说就行。
+
+告诉 AI 类似：*「证明地图能省 token，跑一次对比」*
+
+AI 会针对当前会话里的一个真实任务跑两遍：
+
+- **用地图**：三跳索引查询，记录 token 数
+- **不用地图**：直接搜源码目录，记录 token 数
+- **结果**：节省率 = `(不用地图 − 用地图) / 不用地图`
+
+对比基于你的真实项目和真实任务，数据有实际意义。注意：跑「不用地图」那遍本身会浪费 token，只在你提出质疑时才跑，平时正常使用不会有这一步。
